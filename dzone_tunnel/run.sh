@@ -1,7 +1,7 @@
 #!/usr/bin/with-contenv bashio
 # Enrolls this installation with DZone, then opens one outbound frp tunnel per
-# server, so remote access survives the loss of a single server. Each tunnel is
-# supervised on its own and keeps retrying until the installation is approved.
+# configured server. Each tunnel is supervised on its own and keeps retrying
+# until the installation is approved.
 set -e
 
 ENROLL_URL="${ENROLL_URL:-https://www.dzone.be/ha-enroll}"

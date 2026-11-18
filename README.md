@@ -4,7 +4,7 @@ Bereik je Home Assistant van overal op je eigen adres,
 `https://<naam>.ha.dzone.be`, zonder poorten open te zetten op je router en
 zonder vast IP-adres.
 
-[![Voeg deze repository toe aan Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fdzonebe%2Fhomeassistant-remote-access)
+[![Voeg deze repository toe aan Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fdzonebe%2Fha-remote-access)
 
 ## Wat je krijgt
 
@@ -12,8 +12,6 @@ zonder vast IP-adres.
   en in de Home Assistant-app op je telefoon.
 - **Geen routerinstellingen:** de app legt zelf een uitgaande, versleutelde
   verbinding. Het werkt ook achter CGNAT of op een 4G/5G-verbinding.
-- **Twee servers:** valt er één uit, dan loopt je verbinding via de andere.
-- **Thuis blijft alles werken**, ook als de verbinding naar buiten wegvalt.
 
 ## Wat je nodig hebt
 
@@ -28,7 +26,7 @@ zonder vast IP-adres.
    **Instellingen → Apps → App store → ⋮ → Repositories** deze URL toe:
 
    ```
-   https://github.com/dzonebe/homeassistant-remote-access
+   https://github.com/dzonebe/ha-remote-access
    ```
 
 2. Installeer **DZone Remote Access** en kies bij **Configuratie** een

@@ -6,7 +6,7 @@ zonder poorten open te zetten op je router.
 ## Instellen
 
 1. Kies bij **Configuratie** een **subdomein** (kleine letters, cijfers en
-   koppeltekens). De lijst met servers laat je ongewijzigd.
+   koppeltekens). De servers laat je ongewijzigd.
 2. Voeg dit toe aan `configuration.yaml` en herstart Home Assistant:
 
    ```yaml
@@ -42,5 +42,4 @@ die zit ook in je Home Assistant-back-ups.
   gebruik. Kies een ander, of neem contact op als je de app opnieuw installeerde
   zonder back-up.
 - **"Remote access is blocked" of "has expired":** neem contact op met DZone.
-- **Eén tunnel valt weg:** de andere server neemt het over; de app probeert
-  zelf opnieuw te verbinden.
+- **De verbinding valt weg:** de app probeert zelf opnieuw te verbinden.

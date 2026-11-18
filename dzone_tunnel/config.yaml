@@ -10,7 +10,6 @@ options:
   subdomain: null
   servers:
     - tunnel1.dzone.be
-    - tunnel2.dzone.be
 schema:
   subdomain: "match(^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$)"
   servers:
