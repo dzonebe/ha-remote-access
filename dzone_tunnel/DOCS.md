@@ -17,7 +17,8 @@ zonder poorten open te zetten op je router.
        - 127.0.0.1
    ```
 
-3. Start de app en zet **Starten bij opstarten** en **Watchdog** aan.
+3. Start de app en zet **Starten bij opstarten**, **Watchdog** en
+   **Automatisch bijwerken** aan.
 4. Open het **Logboek** van de app en volg de link achter *Subscribe here* om
    een abonnement af te sluiten (€ 3 per maand, maandelijks opzegbaar). Na de
    betaling komt de verbinding binnen enkele minuten vanzelf tot stand; je
