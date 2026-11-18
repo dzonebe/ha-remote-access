@@ -24,6 +24,8 @@ fi
 TOKEN="$(cat "$TOKEN_FILE")"
 TOKEN_HASH="$(printf %s "$TOKEN" | sha256sum | cut -d' ' -f1)"
 CODE="$(printf %s "${TOKEN_HASH:0:6}" | tr a-f A-F)"
+# Where to take out or manage the subscription for this installation.
+SUBSCRIBE_URL="${ENROLL_URL%/ha-enroll}/ha-subscribe?s=${SUBDOMAIN}&c=${CODE}"
 
 # Ask where we stand. The website being unreachable must never keep an already
 # approved installation offline, so anything but a clear refusal carries on.
@@ -32,10 +34,11 @@ STATUS="$(curl -s -m 20 -A 'Mozilla/5.0 (compatible; dzone-ha-app)' \
   -d "{\"subdomain\":\"${SUBDOMAIN}\",\"token_hash\":\"${TOKEN_HASH}\"}" \
   "$ENROLL_URL" | jq -r '.status // ""' 2>/dev/null || true)"
 case "$STATUS" in
-  active)  bashio::log.info "Approved for ${SUBDOMAIN}.ha.dzone.be" ;;
-  pending) bashio::log.warning "Waiting for approval by DZone. Pairing code: ${CODE}" ;;
+  active)  bashio::log.info "Active for ${SUBDOMAIN}.ha.dzone.be. Manage your subscription: ${SUBSCRIBE_URL}" ;;
+  pending) bashio::log.warning "Not active yet. Subscribe here: ${SUBSCRIBE_URL}"
+           bashio::log.warning "The connection starts by itself within a few minutes after payment. Pairing code: ${CODE}" ;;
   blocked) bashio::log.warning "Remote access is blocked. Contact DZone. Pairing code: ${CODE}" ;;
-  expired) bashio::log.warning "Remote access has expired. Contact DZone. Pairing code: ${CODE}" ;;
+  expired) bashio::log.warning "Your subscription has ended. Renew here: ${SUBSCRIBE_URL}" ;;
   taken)   bashio::exit.nok "Subdomain '${SUBDOMAIN}' belongs to another installation. Choose another one, or contact DZone if this installation was reinstalled. Pairing code: ${CODE}" ;;
   invalid) bashio::exit.nok "Subdomain '${SUBDOMAIN}' is not allowed. Choose another one." ;;
   busy)    bashio::log.warning "DZone cannot take the request right now; restart this app later. Pairing code: ${CODE}" ;;

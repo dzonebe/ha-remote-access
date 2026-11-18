@@ -1,5 +1,5 @@
 name: DZone Remote Access
-version: "0.2.0"
+version: "0.3.0"
 slug: dzone_tunnel
 description: Maakt Home Assistant van buitenaf bereikbaar via <naam>.ha.dzone.be
 arch:

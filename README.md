@@ -17,8 +17,8 @@ zonder vast IP-adres.
 
 - Home Assistant OS of Supervised (een installatie met de app store), op een
   64-bit toestel (amd64 of aarch64, bv. een Raspberry Pi 4 of 5).
-- Een goedkeuring van DZone Consulting. Elke nieuwe installatie wordt eerst
-  nagekeken; vraag toegang aan via [dzone.be](https://www.dzone.be).
+- Een abonnement van € 3 per maand, maandelijks opzegbaar. Je sluit het af
+  tijdens de installatie.
 
 ## Installeren
 
@@ -41,9 +41,9 @@ zonder vast IP-adres.
        - 127.0.0.1
    ```
 
-4. Start de app. In het **Logboek** staat een koppelcode van 6 tekens: geef die
-   door aan DZone Consulting. Na de goedkeuring komt de verbinding binnen enkele
-   minuten vanzelf tot stand.
+4. Start de app. In het **Logboek** staat een link om je abonnement af te
+   sluiten. Na de betaling komt de verbinding binnen enkele minuten vanzelf tot
+   stand.
 
 De volledige handleiding, met oplossingen voor veelvoorkomende problemen, staat
 in het tabblad **Documentatie** van de app en in
@@ -78,5 +78,5 @@ repository.
 **English:** DZone Remote Access is a Home Assistant app that makes your
 installation reachable at `https://<name>.ha.dzone.be` through an outbound,
 encrypted tunnel, with no port forwarding. Add this repository to the Home
-Assistant app store, pick a subdomain, and send the pairing code from the app's
-log to DZone Consulting for approval.
+Assistant app store, pick a subdomain, and follow the link in the app's log to
+subscribe (EUR 3 per month, cancel any time).
