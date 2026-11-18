@@ -1,5 +1,8 @@
 FROM ghcr.io/home-assistant/base:3.23
 
+# websocat: talks to Home Assistant's websocket API from run.sh.
+RUN apk add --no-cache websocat
+
 # Pinned frp release + checksums. Bump all three together, and keep frps on the
 # servers at a compatible version (update one server + your own HA first).
 ARG FRP_VERSION=0.72.0

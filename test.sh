@@ -27,55 +27,50 @@ n=$(docker exec "$id" sh -c 'for f in /tmp/frpc-*.toml; do frpc verify -c "$f" >
 # A subdomain that could break out of the TOML string must stop the app.
 out=$(run_app 'x\"\nserverAddr = \"evil' 2>&1 || true)
 grep -q "Invalid subdomain" <<<"$out" || { echo "FAIL: invalid subdomain was not rejected"; echo "$out"; exit 1; }
-# --- configuration.yaml handling ---------------------------------------------
-# scenario <name> <initial configuration.yaml> <check_config result> [extra option]
-# Starts the app with a config folder and a stand-in for the Home Assistant API
-# (it answers every call with the given result and records the calls).
-ORIGINAL='default_config:
-automation: !include automations.yaml
-'
+# --- Home Assistant HTTP settings ---------------------------------------------
+# scenario <name> <stable config json> [extra option] [mode]
+# Starts the app next to tests/fake_ha_ws.sh, a stand-in for Home Assistant's
+# websocket API that keeps the HTTP config the way Home Assistant does.
+DEFAULTS='"cors_allowed_origins":[],"login_attempts_threshold":-1,"ip_ban_enabled":true,"ssl_profile":"intermediate_v6","use_x_frame_options":true,"created_at":"t","error":null,"error_message":null'
 scenario() {
-  docker rm -f "dzt-conf-$1" >/dev/null 2>&1 || true
-  docker run -d --name "dzt-conf-$1" --entrypoint sh -e ENROLL_URL=http://127.0.0.1:9/ \
-    -e CORE_API=http://127.0.0.1:8099 -e CONF="$2" -e API="{\"result\":\"$3\"}" \
-    -e OPTS="{\"subdomain\":\"klant1\",\"servers\":[\"t1.example.test\"]${4:-}}" "$IMG" -c '
-      mkdir -p /data /homeassistant
+  docker rm -f "dzt-ws-$1" >/dev/null 2>&1 || true
+  docker run -d --name "dzt-ws-$1" --entrypoint sh -e ENROLL_URL=http://127.0.0.1:9/ \
+    -e CORE_WS=ws://127.0.0.1:8099 -e HA_WAIT=1 -e MODE="${4:-}" -e FAKE="$(cat tests/fake_ha_ws.sh)" \
+    -e STATE="{\"stable\":{$2,$DEFAULTS},\"pending\":null,\"revert_at\":null,\"active_config_type\":\"stable\",\"default\":{}}" \
+    -e OPTS="{\"subdomain\":\"klant1\",\"servers\":[\"t1.example.test\"]${3:-}}" "$IMG" -c '
+      mkdir -p /data
       printf %s "$OPTS" > /data/options.json
-      [ -f /homeassistant/configuration.yaml ] || printf %s "$CONF" > /homeassistant/configuration.yaml
-      ( while true; do
-          printf "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %s\r\nConnection: close\r\n\r\n%s" "${#API}" "$API" \
-            | nc -l -p 8099 >> /tmp/requests 2>/dev/null
-        done ) &
+      printf %s "$STATE" > /tmp/state.json
+      printf "%s\n" "$FAKE" > /tmp/fake.sh
+      touch /tmp/ws_requests
+      websocat -t -E ws-l:127.0.0.1:8099 cmd:"bash /tmp/fake.sh" 2>/dev/null &
+      sleep 1
       exec /init /run.sh' >/dev/null
-  sleep 7
+  sleep 16
 }
-conf() { docker exec "dzt-conf-$1" cat /homeassistant/configuration.yaml; }
-calls() { docker exec "dzt-conf-$1" sh -c "grep -ac '$2' /tmp/requests 2>/dev/null || true"; }
-check() { if eval "$2"; then :; else echo "FAIL: $1"; exit 1; fi; }
-trap 'docker rm -f "$id" dzt-conf-add dzt-conf-http dzt-conf-invalid dzt-conf-off >/dev/null 2>&1' EXIT
+state() { docker exec "dzt-ws-$1" jq -c "$2" /tmp/state.json; }
+sent() { docker exec "dzt-ws-$1" sh -c "grep -c '\"type\":\"$2\"' /tmp/ws_requests || true"; }
+check() { if eval "$2"; then :; else echo "FAIL: $1"; docker logs "dzt-ws-$3" 2>&1 | tail -8; exit 1; fi; }
+trap 'docker rm -f "$id" dzt-ws-fresh dzt-ws-done dzt-ws-merge dzt-ws-off dzt-ws-old >/dev/null 2>&1' EXIT
 
-scenario add "$ORIGINAL" valid
-check "proxy settings were not added" '[ "$(conf add | grep -c "Added by DZone Remote Access")" -eq 1 ] && conf add | grep -q "172.30.33.0/24"'
-check "original content was not kept" 'conf add | grep -q "automation: !include automations.yaml"'
-check "no backup was made" '[ "$(docker exec dzt-conf-add cat /homeassistant/configuration.yaml.dzone-backup)" = "$(printf %s "$ORIGINAL")" ]'
-check "Home Assistant was not restarted exactly once" '[ "$(calls add services/homeassistant/restart)" -eq 1 ]'
-docker restart dzt-conf-add >/dev/null; sleep 7
-check "settings were added twice" '[ "$(conf add | grep -c "^http:")" -eq 1 ]'
-check "Home Assistant was restarted again" '[ "$(calls add services/homeassistant/restart)" -eq 1 ]'
+scenario fresh '"server_port":80'
+check "the tunnel is not trusted after a fresh start" '[ "$(state fresh ".stable | [.use_x_forwarded_for, .trusted_proxies, .server_port, .ip_ban_enabled]")" = "[true,[\"127.0.0.1\",\"172.30.33.0/24\"],80,true]" ]' fresh
+check "the change was not confirmed" '[ "$(state fresh .pending)" = "null" ] && [ "$(sent fresh http/config/promote)" -eq 1 ]' fresh
+check "metadata was sent back to Home Assistant" '! docker exec dzt-ws-fresh grep configure /tmp/ws_requests | grep -q created_at' fresh
+check "the tunnel does not use the Home Assistant port" 'docker exec dzt-ws-fresh grep -q "localPort = 80" /tmp/frpc-t1.example.test.toml' fresh
 
-WITH_HTTP='default_config:
-http:
-  ssl_certificate: /ssl/fullchain.pem
-'
-scenario http "$WITH_HTTP" valid
-check "an existing http: section was modified" '[ "$(conf http)" = "$(printf %s "$WITH_HTTP")" ] && [ "$(calls http POST)" -eq 0 ]'
-check "no manual instruction was logged" 'docker logs dzt-conf-http 2>&1 | grep -q "already has an http: section"'
+scenario done '"server_port":8123,"use_x_forwarded_for":true,"trusted_proxies":["172.30.33.0/24","127.0.0.1"]'
+check "settings that were already right were changed" '[ "$(sent done http/config/configure)" -eq 0 ]' done
+check "port 8123 was not kept" 'docker exec dzt-ws-done grep -q "localPort = 8123" /tmp/frpc-t1.example.test.toml' done
 
-scenario invalid "$ORIGINAL" invalid
-check "a rejected change was not rolled back" '[ "$(conf invalid)" = "$(printf %s "$ORIGINAL")" ]'
-check "Home Assistant was restarted after a rejected change" '[ "$(calls invalid services/homeassistant/restart)" -eq 0 ]'
+scenario merge '"server_port":8123,"use_x_forwarded_for":true,"trusted_proxies":["10.0.0.5"]'
+check "an existing trusted proxy was dropped" '[ "$(state merge ".stable.trusted_proxies")" = "[\"10.0.0.5\",\"127.0.0.1\",\"172.30.33.0/24\"]" ]' merge
 
-scenario off "$ORIGINAL" valid ',"configure_home_assistant":false'
-check "the opt-out was ignored" '[ "$(conf off)" = "$(printf %s "$ORIGINAL")" ] && [ "$(calls off POST)" -eq 0 ]'
+scenario off '"server_port":8123' ',"configure_home_assistant":false'
+check "the opt-out was ignored" '[ "$(sent off http/config/configure)" -eq 0 ] && [ "$(state off ".stable.use_x_forwarded_for")" = "null" ]' off
+
+scenario old '"server_port":8123' '' old
+check "no manual instruction on an older Home Assistant" 'docker logs dzt-ws-old 2>&1 | grep -q "Trust X-Forwarded-For"' old
+check "the tunnel did not start on an older Home Assistant" 'docker exec dzt-ws-old grep -q "localPort = 8123" /tmp/frpc-t1.example.test.toml' old
 
 echo "OK"

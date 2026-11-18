@@ -1,18 +1,14 @@
 name: DZone Remote Access
-version: "0.4.0"
+version: "0.5.0"
 slug: dzone_tunnel
 description: Maakt Home Assistant van buitenaf bereikbaar via <naam>.ha.dzone.be
 arch:
   - aarch64
   - amd64
 init: false
-# Lets the app add the proxy settings to configuration.yaml and restart Home
-# Assistant once (see run.sh); switch off with the option below.
+# Lets the app read Home Assistant's HTTP settings and make it trust the tunnel
+# (see run.sh); switch that off with the option configure_home_assistant.
 homeassistant_api: true
-map:
-  - type: homeassistant_config
-    read_only: false
-    path: /homeassistant
 options:
   subdomain: null
   configure_home_assistant: true
