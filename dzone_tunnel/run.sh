@@ -15,6 +15,66 @@ SUBDOMAIN="$(jq -r '.subdomain // ""' "$OPTIONS")"
 [[ "$SUBDOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]] \
   || bashio::exit.nok "Invalid subdomain: lowercase letters, digits and hyphens only."
 
+# --- Home Assistant must trust the tunnel as a proxy -------------------------
+# Without these lines Home Assistant answers every tunnelled request with
+# "400: Bad Request". They can only be set in configuration.yaml, so the app
+# adds them itself when that is safe: no http: section yet, a backup is kept,
+# and the result is validated by Home Assistant before it is restarted.
+HA_CONFIG="${HA_CONFIG:-/homeassistant/configuration.yaml}"
+CORE_API="${CORE_API:-http://supervisor/core/api}"
+MARKER="# Added by DZone Remote Access"
+
+core_api() {
+  curl -s -m 60 -X POST -H "Authorization: Bearer ${SUPERVISOR_TOKEN:-}" \
+    -H 'Content-Type: application/json' "${CORE_API}/$1"
+}
+
+manual_config_hint() {
+  bashio::log.warning "$1 Add this to configuration.yaml yourself and restart Home Assistant:"
+  bashio::log.warning "  http:"
+  bashio::log.warning "    use_x_forwarded_for: true"
+  bashio::log.warning "    trusted_proxies:"
+  bashio::log.warning "      - 172.30.33.0/24"
+  bashio::log.warning "      - 127.0.0.1"
+}
+
+configure_home_assistant() {
+  [ "$(jq -r '.configure_home_assistant' "$OPTIONS")" != "false" ] || return 0
+  if [ ! -w "$HA_CONFIG" ]; then
+    manual_config_hint "Cannot write to configuration.yaml."
+    return 0
+  fi
+  if grep -qF "$MARKER" "$HA_CONFIG"; then
+    return 0
+  fi
+  if grep -Eq '^http:' "$HA_CONFIG"; then
+    if grep -q 'use_x_forwarded_for' "$HA_CONFIG" && grep -qF '172.30.33.0/24' "$HA_CONFIG" \
+      && grep -qF '127.0.0.1' "$HA_CONFIG"; then
+      return 0
+    fi
+    manual_config_hint "configuration.yaml already has an http: section, so it was left untouched."
+    return 0
+  fi
+
+  cp -p "$HA_CONFIG" "${HA_CONFIG}.dzone-backup"
+  {
+    [ -z "$(tail -c1 "$HA_CONFIG")" ] || echo
+    printf '\n%s: lets Home Assistant accept requests that arrive through the tunnel.\n' "$MARKER"
+    printf 'http:\n  use_x_forwarded_for: true\n  trusted_proxies:\n    - 172.30.33.0/24\n    - 127.0.0.1\n'
+  } >> "$HA_CONFIG"
+
+  local result
+  result="$(core_api config/core/check_config | jq -r '.result // ""' 2>/dev/null || true)"
+  if [ "$result" != "valid" ]; then
+    cp -p "${HA_CONFIG}.dzone-backup" "$HA_CONFIG"
+    manual_config_hint "Home Assistant did not accept the change, so configuration.yaml was restored."
+    return 0
+  fi
+  bashio::log.info "Added the proxy settings to configuration.yaml (backup: configuration.yaml.dzone-backup). Restarting Home Assistant once to apply them."
+  core_api services/homeassistant/restart >/dev/null 2>&1 || true
+}
+configure_home_assistant
+
 # The token is this installation's own secret. It is generated once, kept in
 # /data (part of Home Assistant backups) and only ever sent to the tunnel
 # servers; DZone's website receives just its hash.

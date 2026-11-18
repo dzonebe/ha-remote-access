@@ -31,17 +31,8 @@ zonder vast IP-adres.
 
 2. Installeer **DZone Remote Access** en kies bij **Configuratie** een
    subdomein, bijvoorbeeld `familie-janssens`.
-3. Voeg dit toe aan `configuration.yaml` en herstart Home Assistant:
-
-   ```yaml
-   http:
-     use_x_forwarded_for: true
-     trusted_proxies:
-       - 172.30.33.0/24
-       - 127.0.0.1
-   ```
-
-4. Start de app. In het **Logboek** staat een link om je abonnement af te
+3. Start de app. Ze stelt Home Assistant zelf in en herstart het één keer. In
+   het **Logboek** staat daarna een link om je abonnement af te
    sluiten. Na de betaling komt de verbinding binnen enkele minuten vanzelf tot
    stand.
 

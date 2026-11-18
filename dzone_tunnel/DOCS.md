@@ -7,23 +7,14 @@ zonder poorten open te zetten op je router.
 
 1. Kies bij **Configuratie** een **subdomein** (kleine letters, cijfers en
    koppeltekens). De servers laat je ongewijzigd.
-2. Voeg dit toe aan `configuration.yaml` en herstart Home Assistant:
-
-   ```yaml
-   http:
-     use_x_forwarded_for: true
-     trusted_proxies:
-       - 172.30.33.0/24
-       - 127.0.0.1
-   ```
-
-3. Start de app en zet **Starten bij opstarten**, **Watchdog** en
-   **Automatisch bijwerken** aan.
-4. Open het **Logboek** van de app en volg de link achter *Subscribe here* om
+2. Start de app en zet **Starten bij opstarten**, **Watchdog** en
+   **Automatisch bijwerken** aan. Bij de eerste start voegt de app zelf de nodige
+   regels toe aan `configuration.yaml` en herstart ze Home Assistant één keer.
+3. Open het **Logboek** van de app en volg de link achter *Subscribe here* om
    een abonnement af te sluiten (€ 3 per maand, maandelijks opzegbaar). Na de
    betaling komt de verbinding binnen enkele minuten vanzelf tot stand; je
    hoeft niets te herstarten.
-5. Stel in de Home Assistant-app op je telefoon `https://<naam>.ha.dzone.be` in
+4. Stel in de Home Assistant-app op je telefoon `https://<naam>.ha.dzone.be` in
    als externe URL. Laat de interne URL staan: thuis blijft alles dan werken,
    ook als de verbinding met DZone wegvalt.
 
@@ -32,6 +23,26 @@ zonder poorten open te zetten op je router.
 Herstart de app en open de link achter *Manage your subscription* in het
 **Logboek**. Daar pas je je betaalgegevens aan, vind je je facturen en zeg je op.
 Na het opzeggen blijft de toegang werken tot het einde van de betaalde periode.
+
+## Aanpassing aan configuration.yaml
+
+Home Assistant aanvaardt verkeer via de tunnel alleen als deze regels in
+`configuration.yaml` staan:
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.30.33.0/24
+    - 127.0.0.1
+```
+
+De app voegt ze zelf toe, bewaart eerst een kopie
+(`configuration.yaml.dzone-backup`) en laat Home Assistant de wijziging nakijken
+voor de herstart. Heb je al een `http:`-sectie, dan blijft het bestand
+onaangeroerd en vul je de regels zelf aan; het logboek van de app meldt dat.
+Wil je dat de app nooit aan `configuration.yaml` komt, zet dan bij
+**Configuratie** de optie `configure_home_assistant` uit.
 
 ## Beveiliging
 
@@ -43,8 +54,8 @@ die zit ook in je Home Assistant-back-ups.
 
 ## Problemen
 
-- **"400: Bad Request" in de browser:** stap 2 ontbreekt of Home Assistant is
-  nog niet herstart.
+- **"400: Bad Request" in de browser:** de regels in `configuration.yaml`
+  ontbreken of Home Assistant is nog niet herstart. Zie hierboven.
 - **"Not active yet":** er is nog geen abonnement voor deze installatie. Volg
   de link in het logboek.
 - **"Subdomain ... belongs to another installation":** het subdomein is al in
