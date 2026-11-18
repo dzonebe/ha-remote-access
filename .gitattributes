@@ -1,0 +1,2 @@
+# run.sh runs on Linux: CRLF line endings break the shebang.
+* text=auto eol=lf

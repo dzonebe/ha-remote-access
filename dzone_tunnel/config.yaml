@@ -1,0 +1,17 @@
+name: DZone Remote Access
+version: "0.2.0"
+slug: dzone_tunnel
+description: Maakt Home Assistant van buitenaf bereikbaar via <naam>.ha.dzone.be
+arch:
+  - aarch64
+  - amd64
+init: false
+options:
+  subdomain: null
+  servers:
+    - tunnel1.dzone.be
+    - tunnel2.dzone.be
+schema:
+  subdomain: "match(^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$)"
+  servers:
+    - "match(^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$)"
